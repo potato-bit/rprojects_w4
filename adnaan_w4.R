@@ -1,4 +1,5 @@
 library('tidyverse')
+library('cowplot')
 
 # PART 1
 dw <- read_csv("wb_warwick.csv")
@@ -9,7 +10,7 @@ lm(wb ~ 1, dw)
 
 fit1 <- lm(wb ~ ig, dw)
 summary(fit1)
-ggplot(dw, mapping=aes(x=ig,y=wb)) + geom_point(position='jitter') + geom_smooth(method='lm')
+ggplot(dw, mapping=aes(x=ig,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
 
 fit2 <- lm(wb ~ cooked, dw)
 summary(fit2)
@@ -19,8 +20,16 @@ fit3 <- lm(wb ~ rolf, dw)
 summary(fit3)
 ggplot(dw, mapping=aes(x=rolf,y=wb)) + geom_point(position='jitter') + geom_smooth(method='lm')
 
-### The scatter plot showig well-beinng against number of instagram followers shows that there exists one possible
+### The scatter plot showing well-being against number of instagram followers shows that there exists one possible
 ### outlier with >200 followers
+
+dw <- dw %>% filter(ig<200)
+fit4 <- lm(wb ~ ig, dw)
+summary(fit4)
+ggplot(dw, mapping=aes(x=ig,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
+
+### After removing the outlier, ig is no  longer a statistically significant estimator of well-being, and the
+### and the relationship is almost flat.
 
 ### cooking is the best predictor with an R^2 score of 0.36, and has the strongest bivariate relationship with
 ### with well-being with a coefficient of 0.793
@@ -50,5 +59,7 @@ df3 <- data.frame(rolf=c(0,3,7))
 predict(fit3,newdata=df3)
 ### for all (rolf,wb): (0,5.73); (3,5.73); (7,5.73)
 ### This might be accurate predictions as there is almost no relationship between `rolf` and `wb`
+
+### better predictions how?
 
 dw
