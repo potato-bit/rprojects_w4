@@ -23,13 +23,23 @@ ggplot(dw, mapping=aes(x=rolf,y=wb)) + geom_point(position='jitter') + geom_smoo
 ### The scatter plot showing well-being against number of instagram followers shows that there exists one possible
 ### outlier with >200 followers
 
-dw <- dw %>% filter(ig<200)
-fit4 <- lm(wb ~ ig, dw)
+dw2 <- dw1 %>% filter(ig<200)
+fit4 <- lm(wb ~ ig, dw2)
 summary(fit4)
-ggplot(dw, mapping=aes(x=ig,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
+ggplot(dw2, mapping=aes(x=ig,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
 
 ### After removing the outlier, ig is no  longer a statistically significant estimator of well-being, and the
 ### and the relationship is almost flat.
+
+fit5 <- lm(wb ~ cooked, dw2)
+summary(fit5)
+ggplot(dw2, mapping=aes(x=cooked,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
+
+### the relationship becomes stronger after removing the outlier
+
+fit6 <- lm(wb ~ rolf, dw2)
+summary(fit6)
+ggplot(dw2, mapping=aes(x=rolf,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
 
 ### cooking is the best predictor with an R^2 score of 0.36, and has the strongest bivariate relationship with
 ### with well-being with a coefficient of 0.793
@@ -46,20 +56,31 @@ sigma(fit3)
 ### H0: b_1 = 0 v. H1: b_1 != 0
 
 df1 <-  data.frame(ig=c(10,100,200))
-predict(fit1,newdata=df1)
+predict(fit4,newdata=df1)
 ### for all (ig,wb): (10,7.05); (100,5.45); (200,3.66)
 ### this is probably not very accurate due to the low goodness-of-fit and the low coefficient for ig
 
 df2 <- data.frame(cooked=c(1,3,6))
-predict(fit2,newdata=df2)
+predict(fit5,newdata=df2)
 ### for all (cooked,wb): (1,2.15); (3,3.74); (6,6.13)
 ### this might be more accurate with the higher goodness-of-fit 
 
 df3 <- data.frame(rolf=c(0,3,7))
-predict(fit3,newdata=df3)
+predict(fit6,newdata=df3)
 ### for all (rolf,wb): (0,5.73); (3,5.73); (7,5.73)
 ### This might be accurate predictions as there is almost no relationship between `rolf` and `wb`
 
-### better predictions how?
+### ultimately, with such a small sample size, the results of the regression analyses are not convincing, and the 
+### effectiveness of the models may not translate to data outside the sample.
 
-dw
+### Predictions could be improved by improving the sample size
+
+df4 <- data.frame(cooked=c(0,1,2,3,4,5,6,7))
+predict(fit5,newdata=df4,interval='prediction')
+
+dfp <- as_tibble(predict(fit5,newdata=df4,interval='prediction'))
+dfc <- as_tibble(predict(fit5,newdata=df4,interval='confidence'))
+dfp <- dfp %>% mutate(lwr_c=dfc$lwr,upr_c=dfc$upr)
+
+dfP_long <- dfp %>% pivot_longer(c('lwr','upr','lwr_c','upr_c'),names_to='interval', values_to='prediction')
+ggplot(dfp_long, mapping=aes(x=))
