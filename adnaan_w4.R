@@ -23,7 +23,7 @@ ggplot(dw, mapping=aes(x=rolf,y=wb)) + geom_point(position='jitter') + geom_smoo
 ### The scatter plot showing well-being against number of instagram followers shows that there exists one possible
 ### outlier with >200 followers
 
-dw2 <- dw1 %>% filter(ig<200)
+dw2 <- dw %>% filter(ig<200)
 fit4 <- lm(wb ~ ig, dw2)
 summary(fit4)
 ggplot(dw2, mapping=aes(x=ig,y=wb)) + geom_jitter(height=0.1,width=0.1) + geom_smooth(method='lm') + theme_cowplot()
@@ -76,11 +76,21 @@ predict(fit6,newdata=df3)
 ### Predictions could be improved by improving the sample size
 
 df4 <- data.frame(cooked=c(0,1,2,3,4,5,6,7))
-predict(fit5,newdata=df4,interval='prediction')
+PI <- predict(fit5,newdata=df4,interval='prediction')
+colnames(PI) <- c('fit_p','lwr_p','upr_p')
+CI <- predict(fit5,newdata=df4,interval='confidence')
+colnames(CI) <- c('fit_c','lwr_c','upr_c')
+results <- as_tibble(cbind(df4,PI,CI))
 
-dfp <- as_tibble(predict(fit5,newdata=df4,interval='prediction'))
-dfc <- as_tibble(predict(fit5,newdata=df4,interval='confidence'))
-dfp <- dfp %>% mutate(lwr_c=dfc$lwr,upr_c=dfc$upr)
+ggplot(results,mapping=aes(x=cooked)) + 
+  geom_point(aes(y=lwr_p),color='#ffa384',shape=1) + geom_line(aes(y=lwr_p),color='#ffa384') +
+  geom_point(aes(y=upr_p),color='#ffa384',shape=1) + geom_line(aes(y=upr_p),color='#ffa384') + 
+  geom_point(aes(y=lwr_c),color='#74bdcb',shape=2) + geom_line(aes(y=lwr_c),color='#74bdcb') + 
+  geom_point(aes(y=upr_c),color='#74bdcb',shape=2) + geom_line(aes(y=upr_c),color='#74bdcb') +
+  geom_point(aes(y=fit_p)) + geom_line(aes(y=fit_p)) + 
+  theme_cowplot()
 
-dfP_long <- dfp %>% pivot_longer(c('lwr','upr','lwr_c','upr_c'),names_to='interval', values_to='prediction')
-ggplot(dfp_long, mapping=aes(x=))
+### [explanation of difference]
+
+# PART 2
+### [explanation]

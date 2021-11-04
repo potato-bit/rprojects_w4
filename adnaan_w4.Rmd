@@ -1,0 +1,278 @@
+---
+title: "Week 3 Notebook"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_crop: no
+    highlight: haddock
+    keep_tex: yes
+    number_sections: yes
+    toc: yes
+    toc_depth: 2
+  html_document:
+    fig_caption: yes
+    theme: journal
+    toc: yes
+    toc_depth: 2
+header-includes: 
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+```{r,echo=FALSE,warning=FALSE}
+ library(knitr)
+  opts_chunk$set(fig.path='figure/graphics-', 
+                 cache.path='cache/graphics-', 
+                 fig.align='center',
+                 external=TRUE,
+                 echo=TRUE,
+                 warning=FALSE,
+                 fig.pos='H'
+                )
+  a4width<- 8.3
+  a4height<- 11.7
+```
+
+Firstly, importing the libraries used in this notebook
+```{r}
+library('tidyverse')
+library('cowplot')
+```
+
+
+# **Part 1**
+## Data
+The file wb_warwick.csv contains fictitious well-being data of 30 students from Warwick. In total the data set has 4 columns/variables.
+```{r}
+dw <- read_csv('wb_warwick.csv')
+glimpse(dw)
+```
+The variables in the data are:
+
+* `wb`: Subjective well-being score on a scale from 1 to 10.
+* `ig`: Number of Instagram followers.
+* `cooked`: Times the student has cooked instead of eating a ready meal or fast food in the last week.
+* `rolf`: Number of times the student has seen Rolf (the campus cat) in the last week.
+
+The main research question for the data is, which of the 3 independent variables (ig, cooked, rolf) predict the subjective well-being score.
+
+
+## Task 1
+Setting up individual simple linear regressions for each of the independent variables predicting subjective well-being:
+
+We estimate 3 models:
+
+* Model 1: 
+$$ wb = \beta_0 + \beta_1 ig $$
+* Model 2: 
+$$ wb = \beta_0 + \beta_1 cooked $$
+* Model 3: 
+$$ wb = \beta_0 + \beta_1 rolf $$
+
+First, for Model 1
+```{r}
+fit1 <- lm(wb ~ ig, dw)
+summary(fit1)
+```
+```{r, warning=FALSE, message=FALSE}
+p1 <- ggplot(dw, mapping=aes(x=ig,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='coral') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p1
+```
+Note the outlier at `ig` > 200.
+
+Next, for Model 2
+```{r}
+fit2 <- lm(wb ~ cooked, dw)
+summary(fit2)
+```
+```{r, warning=FALSE, message=FALSE}
+p2 <- ggplot(dw, mapping=aes(x=cooked,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='coral') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p2
+```
+Note that most data points for `cooked` are at the extreme end at 7, it is highly right-skewed.
+
+Finally, for Model 3
+```{r}
+fit3 <- lm(wb ~ rolf, dw)
+summary(fit3)
+```
+```{r, warning=FALSE, message=FALSE}
+p3 <- ggplot(dw, mapping=aes(x=rolf,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='coral') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p3
+```
+
+
+**Do any of the plots show a suspicious pattern, which could be problematic when applying linear regression?**
+
+The `ig` plot shows us that there may exist an outlier at `ig` > 200. 
+```{r}
+ggplot(dw,mapping=aes(x=ig)) + geom_boxplot()
+```
+Thus, we should rerun the regressions after removing the outlier. Further, the data for `cooked` is highly right-skewed and may not provide accurate results.
+
+Removing the outlier,
+```{r}
+dw2 <- dw %>% filter(ig<200)
+```
+And regressing Model 1 again,
+```{r}
+fit1_n <- lm(wb ~ ig, dw2)
+summary(fit1_n)
+```
+The variable is no longer statistically significant, suggesting `ig` might have no effect on well-being
+```{r, warning=FALSE, message=FALSE}
+p1_n <- ggplot(dw2, mapping=aes(x=ig,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='aquamarine3') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p1_n
+```
+Similarly for Model 2
+```{r}
+fit2_n <- lm(wb ~ cooked, dw2)
+summary(fit2_n)
+```
+The effect of `cooked` has increased along with its statistical significance.
+```{r, warning=FALSE, message=FALSE}
+p2_n <- ggplot(dw2, mapping=aes(x=cooked,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='aquamarine3') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p2_n
+```
+And for Model 3
+```{r}
+fit3_n <- lm(wb ~ rolf, dw2)
+summary(fit3_n)
+```
+```{r, warning=FALSE, message=FALSE}
+p3_n <- ggplot(dw2, mapping=aes(x=rolf,y=wb)) + 
+  geom_jitter(height=0.1,width=0.1, color='aquamarine3') + geom_smooth(method='lm',color='grey80',se=FALSE) + 
+  theme_cowplot()
+p3_n
+```
+There is almost no effect of `rolf` on `wb`.
+
+
+**How strong are the bivariate relationships and which of the independent variables is the best predictor for subjective well-being?**
+
+`cooked` has the strongest bivariate relationship, every additional day in the week where a subject cooks increases wellbeing by 0.82 points. It is also the strongest predictor, explaining 46.69% of the variation in well-being. On the other hand `rolf` has the weakest effect and is the worst predictor.
+
+
+**The `sigma()` function allows extraction of the value of the residual standard deviation. Do so for all models. What does this tell you?**
+
+For Model 1,
+```{r}
+sigma(fit1_n)
+```
+For Model 2,
+```{r}
+sigma(fit2_n)
+```
+For Model 3,
+```{r}
+sigma(fit3_n)
+```
+Model 2 has the lowest residual standard deviation, which makes it also the most accurate estimator and has the least variability. While Model 3 has the worst accuracy or the most variability.
+
+
+**Write down the regression equation for the models with instagram and with rolf**
+
+For Model 1: 
+$$ wb=6.726-0.010ig $$
+For Model 3: 
+$$ wb=6.287-0.377rolf $$
+
+
+**What is the null hypothesis and the alternative hypothesis for the instagram model?**
+
+$$
+H_0: \beta_1=0\ \ v.\ H_1: \beta_1\neq 0
+$$
+With a p-value of 0.31 > 0.1, we fail to reject the hypothesis that $\beta_1=0$  
+
+## Task 2
+Based on the models from task 1, predict the subjective well-being for the following cases:
+
+**For the ig model, predict well-being scores of students with 10, 100, or 200 Instagram followers.**
+```{r}
+df1 <-  data.frame(ig=c(10,100,200))
+predict(fit1_n,newdata=df1)
+```
+This is probably not very accurate due to the low $R^2$ score and the low coefficient for ig. Further, 200 is outside the normal range for `ig`.
+
+
+**For the cooked model, predict well-being scores of students with 1, 3, or 6 times cooking.**
+```{r}
+df2 <- data.frame(cooked=c(1,3,6))
+predict(fit2_n,newdata=df2)
+```
+This might be more accurate with the higher goodness-of-fit.
+
+
+**For the rolf model, predict well-being for a student who saw Rolf 0, 3, or 7 times.**
+```{r}
+df3 <- data.frame(rolf=c(0,3,7))
+predict(fit3_n,newdata=df3)
+```
+These predictions are not very trustworthy, as no strong relationship was extracted from the regression, further, no value of `rolf` exceeded 2.
+
+And overall, all the predictions are not very useful with the very limited sample size and could be improved by collecting more observations.
+
+
+## Task 3
+Setting new values of `cooked` (0-7) to be predicted for:
+```{r}
+df4 <- tibble(cooked=seq(0,7,length=100))
+```
+Getting Probability Interval predictions:
+```{r}
+PI <- predict(fit2_n,newdata=df4,interval='prediction')
+colnames(PI) <- c('fit_p','lwr_p','upr_p')
+```
+Getting Confidence Interval predictions:
+```{r}
+CI <- predict(fit2_n,newdata=df4,interval='confidence')
+colnames(CI) <- c('fit_c','lwr_c','upr_c')
+```
+Concatenating both into one dataframe:
+```{r}
+(results <- as_tibble(cbind(df4,PI,CI)))
+```
+Finally, plotting the results,
+```{r}
+ggplot(results,mapping=aes(x=cooked)) + 
+  geom_line(aes(y=lwr_p,color='PI')) + 
+  geom_line(aes(y=upr_p,color='PI')) + 
+  geom_ribbon(aes(ymin=lwr_p,ymax=upr_p,fill='PI'),alpha=0.5) +
+  geom_line(aes(y=lwr_c,color='CI')) + 
+  geom_line(aes(y=upr_c,color='CI')) +
+  geom_ribbon(aes(ymin=lwr_c,ymax=upr_c,fill='CI'),alpha=0.5) +
+  geom_point(aes(y=fit_p)) + geom_line(aes(y=fit_p)) + 
+  theme_bw() + 
+  ylab('prediction') + 
+  scale_color_manual(name='Method',
+                     breaks=c('CI','PI'),
+                     values=c('CI'='#ffa384','PI'='#74bdcb')) 
+```
+A confidence interval (CI) is an interval containing good estimates of unknown true population parameter. So, the 95% CI means that there is a 95% chance of selecting a sample whose 95% CI contains the true population parameter. Meanwhile, the Prediction Interval (PI) is the interval in which 95% of future observations will occur. Therefore, by definition the PI will always be wider than the CI. Also, note that the CI gets narrower towards the value 7 for `cooked` , this is likely because the number of observations for `cooked` increase with frequency.
+```{r}
+dw %>% group_by(cooked) %>% summarise(n=n()) %>% ggplot(mapping=aes(x=cooked,y=n)) + geom_line()
+```
+
+
+# **PART 2**
+**Briefly describe some cases (of different types) where it would be inappropriate, or questionable, to use a linear regression model. Provide examples in each case, highlighting the most relevant assumptions.**
+
+* An Least Squares (LS) regression would be inappropriate when the output variable is binary (0 or 1) as fitted values cannot be constrained like that and is possible to be greater than 1 or less than 0, which may not make sense depending on the equation.
+* It would also be inappropriate to use LS when estimators aren't linear. For example $\beta_0 + \beta_1X$ is fine but $\beta_0+X^\beta$ is not able to be estimated using LS
+* The explanatory variables should not be significantly linearly correlated, they should be orthogonal. Though, a some multicollinearity is not problematic
+* Errors should not be serially correlated, this occurs when there is an omission of some explanatory variables (called false autocorrelation) or if there is a misspecification of the random term (true autocorrelation). OLS is no longer efficient and estimators will have larger variances.
+* Heteroskedasticity implies increasing error variances where instead of $$ var(\epsilon_i)=\sigma^2 $$ 
+the variance has different relations with $X_i$. It implies that OLS is no longer the best estimator, but Weighted Least Squares might be.
+* Endogeneity is another major issue, it violates the assumption that regressors are non-stochastic and errors are independent of explanatory variables, and regressors are exogenous. It can occur due to autocorrelated errors, measurement errors, omitted variables, simultaneous equations, or reverse causality. For example, when studying the effects of drug use on employment probability, it is difficult to isolate the effects of drug use if drug use affects employment probability, but also employment probability can affect drug use. Endogeneity can sometimes be resolved with the use of good Instrumental Variables.
+
